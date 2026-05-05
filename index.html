@@ -1,37 +1,179 @@
-journey-tracker-pro
 <!DOCTYPE html>
 <html lang="bn">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Journey Tracker Pro</title>
+    <title>জার্নি ট্র্যাকার প্রো - শাকিল হোসেন</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; background-color: #f4f4f4; padding: 20px; }
-        .container { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
-        h1 { color: #333; }
-        .btn { background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
-        .info { margin-top: 20px; font-size: 18px; }
+        :root {
+            --primary-color: #d32f2f;
+            --bg-color: #f8f9fa;
+            --card-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #333;
+        }
+
+        .header-stats {
+            display: flex;
+            gap: 15px;
+            width: 90%;
+            max-width: 500px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            flex: 1;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #777;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .stat-unit {
+            font-size: 14px;
+            color: #888;
+        }
+
+        #map {
+            width: 90%;
+            max-width: 500px;
+            height: 350px;
+            margin: 20px 0;
+            border-radius: 20px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+            border: 4px solid white;
+        }
+
+        .btn-container {
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+        }
+
+        .tracking-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            width: 100%;
+            padding: 16px;
+            font-size: 18px;
+            font-weight: 600;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(211, 47, 47, 0.4);
+            transition: transform 0.2s;
+        }
+
+        .tracking-btn:active {
+            transform: scale(0.98);
+        }
+
+        .status-text {
+            margin-top: 12px;
+            font-size: 13px;
+            color: #666;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Journey Tracker Pro</h1>
-        <p>আপনার যাত্রা ট্র্যাক করা শুরু করুন</p>
-        <button class="btn" onclick="startTracking()">ট্র্যাকিং শুরু করুন</button>
-        <div class="info" id="status">অবস্থান: এখনো শুরু হয়নি</div>
+
+    <div class="header-stats">
+        <div class="stat-card">
+            <div class="stat-label">গতি</div>
+            <div class="stat-value" id="speed">0.0</div>
+            <div class="stat-unit">কিমি/ঘণ্টা</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">দূরত্ব</div>
+            <div class="stat-value" id="distance">0.00</div>
+            <div class="stat-unit">কিমি</div>
+        </div>
     </div>
 
+    <div id="map"></div>
+
+    <div class="btn-container">
+        <button class="tracking-btn" id="toggleBtn">■ ট্র্যাকিং বন্ধ করুন</button>
+        <p class="status-text">ট্র্যাকিং সচল; সব সময় ব্যাকগ্রাউন্ডে চলবে।</p>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
     <script>
-        function startTracking() {
-            document.getElementById('status').innerText = "অবস্থান: ট্র্যাকিং হচ্ছে...";
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function(position) {
-                    document.getElementById('status').innerText = "অবস্থান: ল্যাটিটিউড " + position.coords.latitude + ", লঙ্গিটিউড " + position.coords.longitude;
-                });
-            } else {
-                alert("আপনার ব্রাউজার লোকেশন সাপোর্ট করে না।");
-            }
+        // ম্যাপ ইনিশিয়ালাইজ (ডিফল্ট ঢাকা লোকেশন)
+        var map = L.map('map').setView([23.8103, 90.4125], 16);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        var marker = L.marker([23.8103, 90.4125]).addTo(map);
+        var path = L.polyline([], {color: '#d32f2f', weight: 5}).addTo(map);
+        
+        var totalDistance = 0;
+        var lastLatLng = null;
+
+        if (navigator.geolocation) {
+            navigator.geolocation.watchPosition(function(position) {
+                var lat = position.coords.latitude;
+                var lng = position.coords.longitude;
+                var speed = position.coords.speed || 0; // m/s
+                
+                var currentLatLng = L.latLng(lat, lng);
+                
+                // গতি আপডেট (কিমি/ঘণ্টা)
+                document.getElementById('speed').innerText = (speed * 3.6).toFixed(1);
+
+                // দূরত্ব হিসাব
+                if (lastLatLng) {
+                    var d = lastLatLng.distanceTo(currentLatLng); // মিটারে
+                    totalDistance += d;
+                    document.getElementById('distance').innerText = (totalDistance / 1000).toFixed(2);
+                }
+                
+                lastLatLng = currentLatLng;
+
+                // ম্যাপ এবং মার্কার আপডেট
+                marker.setLatLng(currentLatLng);
+                path.addLatLng(currentLatLng);
+                map.panTo(currentLatLng);
+
+            }, function(error) {
+                console.log("Error: " + error.message);
+            }, {
+                enableHighAccuracy: true,
+                maximumAge: 1000
+            });
         }
+
+        // বাটন ফাংশনালিটি
+        document.getElementById('toggleBtn').onclick = function() {
+            alert("ট্র্যাকিং স্ট্যাটাস সেভ করা হয়েছে।");
+        };
     </script>
 </body>
 </html>
