@@ -1,1 +1,107 @@
+import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
+void main() => runApp(MaterialApp(home: JourneyTrackerPro()));
+
+class JourneyTrackerPro extends StatefulWidget {
+  @override
+  _JourneyTrackerProState createState() => _JourneyTrackerProState();
+}
+
+class _JourneyTrackerProState extends State<JourneyTrackerPro> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // ১. হেডার সেকশন
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Column(
+                children: [
+                  Icon(Icons.location_on, size: 60, color: Colors.redAccent),
+                  Text(
+                    "জার্নি ট্র্যাকার প্রো",
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                  ),
+                  Text("শাকিল হোসেন দ্বারা তৈরি", style: TextStyle(color: Colors.grey)),
+                ],
+              ),
+            ),
+
+            // ২. স্ট্যাটাস কার্ড (গতি ও দূরত্ব)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildStatCard("গতি", "0.0", "কিমি/ঘণ্টা"),
+                _buildStatCard("দূরত্ব", "0.00", "কিমি"),
+              ],
+            ),
+
+            // ৩. ম্যাপ সেকশন
+            Expanded(
+              child: Container(
+                margin: EdgeInsets.all(15),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(15),
+                  child: GoogleMap(
+                    initialCameraPosition: CameraPosition(
+                      target: LatLng(23.8103, 90.4125), // ঢাকার কোঅর্ডিনেট
+                      zoom: 14,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            // ৪. কন্ট্রোল বাটন
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              child: Column(
+                children: [
+                  ElevatedButton(
+                    onPressed: () {},
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0xFF0056b3),
+                      minimumSize: Size(double.infinity, 55),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    ),
+                    child: Text("➤ ট্র্যাকিং শুরু করুন", style: TextStyle(fontSize: 18, color: Colors.white)),
+                  ),
+                  SizedBox(height: 10),
+                  Text("ট্র্যাকিং বন্ধ। মোট যাত্রা সেভ হয়েছে।", style: TextStyle(color: Colors.grey)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // কাস্টম কার্ড উইজেট
+  Widget _buildStatCard(String title, String value, String unit) {
+    return Container(
+      width: MediaQuery.of(context).size.width * 0.42,
+      padding: EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
+      ),
+      child: Column(
+        children: [
+          Text(title, style: TextStyle(color: Colors.grey)),
+          Text(value, style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.blue)),
+          Text(unit, style: TextStyle(color: Colors.grey)),
+        ],
+      ),
+    );
+  }
+}
